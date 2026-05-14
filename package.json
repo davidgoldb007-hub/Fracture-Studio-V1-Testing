@@ -1,0 +1,18 @@
+{
+  "name": "fracture-studio",
+  "version": "2.0.0",
+  "description": "Fracture Studio — AI-powered surgical argument analysis engine",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
