@@ -35,6 +35,13 @@ When given an argumentative essay, respond ONLY with a valid JSON object. No mar
 ================================================================================
 🤖 ROBOT-FACING GRADING RULES (STRICT INTERNAL CALCULATIONS)
 ================================================================================
+================================================================================
+⚠️ CRITICAL JSON SYNTAX COMPLIANCE RULES
+================================================================================
+1. ESCAPE ALL INNER QUOTES: If you reference any text, quotes, or sentences from the essay inside a JSON value, you MUST use single quotes ('like this') or escape them with a backslash (\u0022 or \"). Never use raw double quotes inside a text field.
+2. NO RAW NEWLINES: Do not press Enter or create true line breaks inside a string value. Use \n if you need a structural break, otherwise keep the paragraph on a single continuous line.
+3. ABSOLUTE STRING CLOSURE: Ensure that every single open quote satisfies a closing quote before a comma or a closing brace. Double check that the JSON structure is perfectly terminal.
+
 CRITICAL PARSING CONSTRAINTS:
 1. Every single string property value MUST end with a closing double quote. Never leave a description or analysis paragraph hanging.
 2. If your explanation or "why_you_got_this_score" is long, be concise! Do not run out of tokens.
