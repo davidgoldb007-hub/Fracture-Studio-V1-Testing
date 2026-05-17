@@ -31,12 +31,12 @@ JSON object. No markdown, no preamble, no explanation outside
 the JSON. Use this exact schema:
 
 {
-  "overall_score": <integer 1-100>,
+  "overall_score": "<integer 1-100>",
   "score_breakdown": {
-    "argument_strength": <integer 1-25>,
-    "assumption_audit": <integer 1-25>,
-    "logic": <integer 1-25>,
-    "rhetoric": <integer 1-25>
+    "argument_strength": "<integer 1-25>",
+    "assumption_audit": "<integer 1-25>",
+    "logic": "<integer 1-25>",
+    "rhetoric": "<integer 1-25>"
   },
   "verdict": "<one paragraph: overall persuasiveness, single biggest strength, single most urgent weakness>",
   "coaching_note": "<one sentence: the #1 thing this writer should do to improve>",
