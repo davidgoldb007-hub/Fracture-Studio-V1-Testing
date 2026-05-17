@@ -97,108 +97,159 @@
 
   // ── Report renderer ────────────────────────────────────────────────────────
   function renderReport(parsed) {
-    const c = reportContainer;
-    c.innerHTML = '';
+  const c = reportContainer;
+  c.innerHTML = '';
 
-    function section(title, innerHTML, open) {
-      return '<details class="report-section"' + (open ? ' open' : '') + '>'
-           + '<summary>' + title + '</summary>'
-           + '<div class="content">' + innerHTML + '</div>'
-           + '</details>';
-    }
-
-    const scores = parsed.score_breakdown || {};
-    const scoreSection =
-      '<p>' + esc(parsed.verdict || '') + '</p>'
-    + '<p><span class="report-label">Coaching Note:</span> ' + esc(parsed.coaching_note || '') + '</p>'
-    + '<div class="score-grid">'
-    + '<div class="score-chip">Argument Strength<span>' + (scores.argument_strength ?? '—') + '/25</span></div>'
-    + '<div class="score-chip">Assumption Audit<span>' + (scores.assumption_audit ?? '—') + '/25</span></div>'
-    + '<div class="score-chip">Logic<span>' + (scores.logic ?? '—') + '/25</span></div>'
-    + '<div class="score-chip">Rhetoric<span>' + (scores.rhetoric ?? '—') + '/25</span></div>'
-    + '</div>';
-
-    const thesis = (parsed.argument_strength || {}).thesis || {};
-    const thesisSection =
-      '<div class="report-item"><span class="report-label">Thesis:</span>'
-    + quoteBlock(thesis.quote)
-    + '<p>' + esc(thesis.assessment || '') + '</p></div>';
-
-    const claimsSection = ((parsed.argument_strength || {}).claims || []).map(function (cl) {
-      return '<div class="report-item">'
-           + '<span class="report-label">Claim:</span>'
-           + quoteBlock(cl.quote)
-           + '<p><b>Rating:</b> ' + esc(cl.rating || '—') + '</p>'
-           + '<p><b>Diagnosis:</b> ' + esc(cl.diagnosis || '') + '</p>'
-           + '<p><b>Opponent Exploit:</b> ' + esc(cl.opponent_exploit || '') + '</p>'
-           + '<p><b>Fix:</b> ' + esc(cl.fix || '') + '</p>'
-           + '</div>';
-    }).join('') || '<p>No claims parsed.</p>';
-
-    const assumptionsSection = (parsed.assumption_audit || []).map(function (a) {
-      return '<div class="report-item">'
-           + '<p><b>Assumption:</b> ' + esc(a.assumption || '') + '</p>'
-           + '<p><b>Load-bearing:</b> ' + esc(a.load_bearing || '') + '</p>'
-           + '<span class="report-label">Dependent Claim:</span>'
-           + quoteBlock(a.quote)
-           + '<p><b>Vulnerability:</b> ' + esc(a.vulnerability || '') + '</p>'
-           + '<p><b>Defense:</b> ' + esc(a.defense || '') + '</p>'
-           + '</div>';
-    }).join('') || '<p>No assumptions parsed.</p>';
-
-    const fallaciesSection = (parsed.logical_fallacies || []).map(function (f) {
-      return '<div class="report-item">'
-           + '<p><b>' + esc(f.name || 'Fallacy') + '</b></p>'
-           + quoteBlock(f.quote)
-           + '<p>' + esc(f.explanation || '') + '</p>'
-           + '<p><b>Fix:</b> ' + esc(f.fix || '') + '</p>'
-           + '</div>';
-    }).join('') || '<p>No explicit fallacies flagged.</p>';
-
-    const countersSection = (parsed.counter_arguments || []).map(function (ct) {
-      return '<div class="report-item">'
-           + '<p><b>Steelman:</b> ' + esc(ct.steelman || '') + '</p>'
-           + '<span class="report-label">Targets:</span>'
-           + quoteBlock(ct.targets)
-           + '<p><b>Damage:</b> ' + esc(ct.damage || '') + '</p>'
-           + '<p><b>Suggested Rebuttal:</b> ' + esc(ct.suggested_rebuttal || '') + '</p>'
-           + '</div>';
-    }).join('') || '<p>No counter-arguments generated.</p>';
-
-    const rhet = parsed.rhetorical_analysis || {};
-    const rhetoricSection =
-      '<p><b>Opening Hook:</b> ' + esc(rhet.opening_hook || '') + '</p>'
-    + '<p><b>Logical Flow:</b> ' + esc(rhet.logical_flow || '') + '</p>'
-    + '<p><b>Strongest Sentence:</b></p>'
-    + quoteBlock((rhet.strongest_sentence || {}).quote)
-    + '<p>' + esc((rhet.strongest_sentence || {}).why || '') + '</p>'
-    + '<p><b>Weakest Sentence:</b></p>'
-    + quoteBlock((rhet.weakest_sentence || {}).quote)
-    + '<p>' + esc((rhet.weakest_sentence || {}).why || '') + '</p>'
-    + '<p><b>Fix:</b> ' + esc((rhet.weakest_sentence || {}).fix || '') + '</p>';
-
-    const rewritesSection = (parsed.rewrite_suggestions || []).map(function (r) {
-      return '<div class="report-item">'
-           + '<span class="report-label">Original:</span>'
-           + quoteBlock(r.original)
-           + '<span class="report-label">Rewrite:</span>'
-           + quoteBlock(r.rewrite)
-           + '<p><b>Improvement:</b> ' + esc(r.improvement || '') + '</p>'
-           + '</div>';
-    }).join('') || '<p>No rewrite suggestions generated.</p>';
-
-    c.innerHTML =
-      section('Verdict & Score Breakdown', scoreSection, true) +
-      section('Thesis Analysis', thesisSection) +
-      section('Claim-by-Claim Analysis', claimsSection) +
-      section('Assumption Audit', assumptionsSection) +
-      section('Logical Fallacies', fallaciesSection) +
-      section('Counter-Arguments', countersSection) +
-      section('Rhetorical Analysis', rhetoricSection) +
-      section('Rewrite Suggestions', rewritesSection);
-
-    requestAnimationFrame(function () { c.classList.add('visible'); });
+  function section(title, innerHTML, open) {
+    return '<details class="report-section"' + (open ? ' open' : '') + '>' +
+           '<summary>' + title + '</summary>' +
+           '<div class="content">' + innerHTML + '</div>' +
+           '</details>';
   }
+
+  // --- 1. VERDICT & SCORE BREAKDOWN ---
+  const scores = parsed.score_breakdown || {};
+  const defs = parsed.user_facing_rubric_definitions || {};
+  
+  const scoreSection = 
+    '<p>' + esc(parsed.verdict || '') + '</p>' +
+    '<div class="score-grid">' +
+      '<div class="score-chip-expanded">' +
+        '<div class="score-chip-header">Fact & Evidence Strength <span>' + (scores.fact_and_evidence_strength?.score ?? '—') + '/25</span></div>' +
+        '<div class="score-definition">' + esc(defs.fact_and_evidence_strength || '') + '</div>' +
+        '<div class="score-reasoning"><b>Why you got this score:</b> ' + esc(scores.fact_and_evidence_strength?.why_you_got_this_score || '') + '</div>' +
+      '</div>' +
+      '<div class="score-chip-expanded">' +
+        '<div class="score-chip-header">Logical Correctness <span>' + (scores.logical_correctness?.score ?? '—') + '/25</span></div>' +
+        '<div class="score-definition">' + esc(defs.logical_correctness || '') + '</div>' +
+        '<div class="score-reasoning"><b>Why you got this score:</b> ' + esc(scores.logical_correctness?.why_you_got_this_score || '') + '</div>' +
+      '</div>' +
+      '<div class="score-chip-expanded">' +
+        '<div class="score-chip-header">Rhetoric & Writing Style <span>' + (scores.rhetoric_and_writing_style?.score ?? '—') + '/25</span></div>' +
+        '<div class="score-definition">' + esc(defs.rhetoric_and_writing_style || '') + '</div>' +
+        '<div class="score-reasoning"><b>Why you got this score:</b> ' + esc(scores.rhetoric_and_writing_style?.why_you_got_this_score || '') + '</div>' +
+      '</div>' +
+      '<div class="score-chip-expanded">' +
+        '<div class="score-chip-header">Clarity & Flow <span>' + (scores.clarity_and_flow?.score ?? '—') + '/25</span></div>' +
+        '<div class="score-definition">' + esc(defs.clarity_and_flow || '') + '</div>' +
+        '<div class="score-reasoning"><b>Why you got this score:</b> ' + esc(scores.clarity_and_flow?.why_you_got_this_score || '') + '</div>' +
+      '</div>' +
+    '</div>';
+
+  // --- 2. THESIS DEEP DIVE ---
+  const deepDive = parsed.evidence_deep_dive || {};
+  const thesis = deepDive.thesis_audit || {};
+  const thesisSection = 
+    '<div class="report-item">' +
+      '<span class="report-label">Thesis Statement Evaluated:</span>' + 
+      quoteBlock(thesis.quote) +
+      '<p><b>Claim Classification:</b> ' + esc(thesis.core_claim_type || '—') + '</p>' +
+      '<p><b>Falsifiability Metric:</b> ' + esc(thesis.falsifiability_check || '') + '</p>' +
+      '<p><b>Strategic Vulnerability:</b> ' + esc(thesis.structural_vulnerability || '') + '</p>' +
+    '</div>';
+
+  // --- 3. CLAIM-BY-CLAIM AUDIT (5-TIER MATCHING) ---
+  const claimsSection = (deepDive.body_claims_analysis || []).map(function (cl) {
+    return '<div class="report-item">' +
+           '<span class="report-label">Claim:</span>' + quoteBlock(cl.quote) +
+           '<p><b>Evidence Rating:</b> <span class="rating-badge ' + esc(cl.evidence_rating || '').toLowerCase() + '">' + esc((cl.evidence_rating || '—').replace(/_/g, ' ')) + '</span></p>' +
+           '<p><b>Diagnosis:</b> ' + esc(cl.diagnosis || '') + '</p>' +
+           '<p><b>Opponent Exploit:</b> ' + esc(cl.opponent_exploit || '') + '</p>' +
+           '<p><b>Fix:</b> ' + esc(cl.fix || '') + '</p>' +
+           '</div>';
+  }).join('') || '<p>No claims parsed.</p>';
+
+  // --- 4. HIDDEN ASSUMPTIONS FOUND (5-TIER MATCHING) ---
+  const assumptionsSection = (parsed.hidden_assumptions_found || []).map(function (a) {
+    return '<div class="report-item">' +
+           '<p><b>Hidden Implicit Assumption:</b> ' + esc(a.assumption || '') + '</p>' +
+           '<p><b>Thesis Danger Level:</b> <span class="danger-badge ' + esc(a.danger_level || '').toLowerCase() + '">' + esc((a.danger_level || '—').replace(/_/g, ' ')) + '</span></p>' +
+           '<span class="report-label">Dependent Content:</span>' + quoteBlock(a.quote) +
+           '<p><b>Vulnerability Analysis:</b> ' + esc(a.vulnerability || '') + '</p>' +
+           '<p><b>Structural Defense Strategy:</b> ' + esc(a.defense || '') + '</p>' +
+           '</div>';
+  }).join('') || '<p>No unspoken assumptions flagged.</p>';
+
+  // --- 5. LOGICAL FALLACIES ---
+  const fallaciesSection = (parsed.logical_fallacies || []).map(function (f) {
+    return '<div class="report-item">' +
+           '<p><b>' + esc(f.name || 'Logical Fallacy') + '</b></p>' + 
+           quoteBlock(f.quote) +
+           '<p><b>Breakdown:</b> ' + esc(f.explanation || '') + '</p>' +
+           '<p><b>Rational Correction:</b> ' + esc(f.fix || '') + '</p>' +
+           '</div>';
+  }).join('') || '<p>No explicit structural fallacies flagged.</p>';
+
+  // --- 6. COUNTER-ARGUMENTS TO PREPARE FOR ---
+  const countersSection = (parsed.counter_arguments_to_prepare_for || []).map(function (ct) {
+    return '<div class="report-item">' +
+           '<p><b>Opposing Viewpoint (Steelman):</b> ' + esc(ct.opposing_viewpoint_steelman || '') + '</p>' +
+           '<span class="report-label">Targeted Section:</span>' + quoteBlock(ct.targets) +
+           '<p><b>Structural Damage Potential:</b> ' + esc(ct.damage || '') + '</p>' +
+           '<p><b>Suggested Rebuttal Setup:</b> ' + esc(ct.suggested_rebuttal || '') + '</p>' +
+           '</div>';
+  }).join('') || '<p>No systemic counter-arguments generated.</p>';
+
+  // --- 7. RHETORICAL & STYLISTIC ANALYSIS ---
+  const rhet = parsed.rhetorical_and_stylistic_analysis || {};
+  const rhetoricSection = 
+    '<p><b>Opening Hook Assessment:</b> ' + esc(rhet.opening_hook_evaluation || '') + '</p>' +
+    '<p><b>Logical Progression & Cognitive Pacing:</b> ' + esc(rhet.logical_progression || '') + '</p>' +
+    '<p><b>Most Persuasive / Stylistic Sentence:</b></p>' + 
+    quoteBlock((rhet.strongest_sentence || {}).quote) +
+    '<p><b>Linguistic Analysis:</b> ' + esc((rhet.strongest_sentence || {}).why || '') + '</p>' +
+    '<p><b>Most Awkward / Wordy Sentence:</b></p>' + 
+    quoteBlock((rhet.weakest_sentence || {}).quote) +
+    '<p><b>Stylistic Failure:</b> ' + esc((rhet.weakest_sentence || {}).why || '') + '</p>' +
+    '<p><b>Optimized Rewrite:</b> ' + esc((rhet.weakest_sentence || {}).fix || '');
+
+  // --- 8. WEIGHING ENGINE (DECISION SUPER-ENGINE) ---
+  const engine = parsed.weighing_engine || {};
+  const dims = engine.weighing_dimensions || {};
+  
+  function renderDimensionArray(arr) {
+    return (arr || []).map(function(item) { return '<li>' + esc(item) + '</li>'; }).join('');
+  }
+
+  const weighingSection = 
+    '<div class="weighing-engine-container">' +
+      '<p class="engine-meta"><i>' + esc(engine.system_prompt || '') + '</i></p>' +
+      '<p><b>Evaluated Elements:</b> ' + esc(engine.input_evaluated || '') + '</p>' +
+      
+      '<div class="engine-dimensions-grid">' +
+        '<div class="dim-block"><h5>⚖️ Magnitude</h5><ul>' + renderDimensionArray(dims.magnitude) + '</ul></div>' +
+        '<div class="dim-block"><h5>🎲 Probability</h5><ul>' + renderDimensionArray(dims.probability) + '</ul></div>' +
+        '<div class="dim-block"><h5>⏳ Timeframe</h5><ul>' + renderDimensionArray(dims.timeframe) + '</ul></div>' +
+        '<div class="dim-block"><h5>🌐 Scope</h5><ul>' + renderDimensionArray(dims.scope) + '</ul></div>' +
+      '</div>' +
+
+      '<div class="engine-analysis">' +
+        '<h4>Comparative Clash Analysis</h4>' +
+        '<p>' + esc(engine.comparative_analysis || '') + '</p>' +
+      '</div>' +
+
+      '<div class="engine-winner-box">' +
+        '<p><b>🏆 Dominant Impact Winner:</b> <span class="winner-highlight">' + esc(engine.winner || '') + '</span></p>' +
+        '<p><b>Systemic Reasoning:</b> ' + esc(engine.final_impact_reasoning || '') + '</p>' +
+      '</div>' +
+    '</div>';
+
+  // --- APPEND ALL SECTIONS TO CONTAINER ---
+  c.innerHTML = 
+    section('Verdict & Score Breakdown', scoreSection, true) +
+    section('Thesis Diagnostic', thesisSection) +
+    section('Claim-by-Claim Audit', claimsSection) +
+    section('Implicit Assumption Analysis', assumptionsSection) +
+    section('Structural Fallacies', fallaciesSection) +
+    section('Counter-Argument Preparedness', countersSection) +
+    section('Rhetorical Style Analysis', rhetoricSection) +
+    section('⚖️ Comparative Impact Weighing Engine', weighingSection);
+
+  requestAnimationFrame(function () {
+    c.classList.add('visible');
+  });
+}
+
 
   // ── Core analysis ──────────────────────────────────────────────────────────
   async function runAnalysis() {
